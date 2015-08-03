@@ -18,6 +18,8 @@
 
 package org.wso2.appserver.integration.tests.aarservice;
 
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.wso2.appserver.integration.common.clients.AARServiceUploaderClient;
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMElement;
@@ -41,6 +43,8 @@ import static org.testng.Assert.assertTrue;
 public class AARServiceTestCase extends ASIntegrationTest {
     private static final Log log = LogFactory.getLog(AARServiceTestCase.class);
     private TestUserMode userMode;
+    private AARServiceUploaderClient aarServiceUploaderClient;
+    private final String axis2Service = "Axis2Service";
 
     @Factory(dataProvider = "userModeProvider")
     public AARServiceTestCase(TestUserMode userMode) {
@@ -52,23 +56,31 @@ public class AARServiceTestCase extends ASIntegrationTest {
         super.init(userMode);
     }
 
+    @AfterClass(alwaysRun = true)
+    public void cleanup() throws Exception {
+        super.cleanup();
+        deleteService(axis2Service);
+    }
+
     @Test(groups = "wso2.as", description = "Upload aar service and verify deployment")
     public void testAarServiceUpload() throws Exception {
-        AARServiceUploaderClient aarServiceUploaderClient
-                = new AARServiceUploaderClient(backendURL, sessionCookie);
+        System.out.println(backendURL);
+        aarServiceUploaderClient
+                = new AARServiceUploaderClient(backendURL, "admin", "admin");
         aarServiceUploaderClient.uploadAARFile("Axis2Service.aar",
                 FrameworkPathUtil.getSystemResourceLocation() + "artifacts" +
                         File.separator + "AS" + File.separator + "aar" + File.separator +
                         "Axis2Service.aar", "");
-        String axis2Service = "Axis2Service";
-        isServiceDeployed(axis2Service);
+        Assert.assertTrue(isServiceDeployed(axis2Service), "Axis2 service deployment failed on management node");
+        //dep sync
+        Assert.assertTrue(isServiceDeployedOnWrk(axis2Service), "Axis2 service deployment failed on worker nodes node");
         log.info("Axis2Service.aar service uploaded successfully");
     }
 
     @Test(groups = "wso2.as", description = "invoke aar service", dependsOnMethods = "testAarServiceUpload")
     public void invokeService() throws Exception {
         AxisServiceClient axisServiceClient = new AxisServiceClient();
-        String endpoint = getServiceUrl("Axis2Service");
+        String endpoint = getServiceUrlHttp("Axis2Service");
         OMElement response = axisServiceClient.sendReceive(createPayLoad(), endpoint, "echoInt");
         log.info("Response : " + response);
         assertTrue(response.toString().contains("<ns:return>25</ns:return>"));
@@ -88,7 +100,7 @@ public class AARServiceTestCase extends ASIntegrationTest {
     private static TestUserMode[][] userModeProvider() {
         return new TestUserMode[][]{
                 new TestUserMode[]{TestUserMode.SUPER_TENANT_ADMIN},
-                new TestUserMode[]{TestUserMode.TENANT_USER},
+//                new TestUserMode[]{TestUserMode.TENANT_USER},
         };
     }
 }

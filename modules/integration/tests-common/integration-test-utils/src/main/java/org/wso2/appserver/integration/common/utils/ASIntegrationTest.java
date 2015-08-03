@@ -63,17 +63,17 @@ public class ASIntegrationTest {
     protected void init(TestUserMode testUserMode) throws Exception {
         asServer = new AutomationContext("AS", testUserMode);
         loginLogoutClient = new LoginLogoutClient(asServer);
-        sessionCookie = loginLogoutClient.login();
-        backendURL = asServer.getContextUrls().getBackEndUrl();
+        backendURL = getMgtUrlHttps();
         webAppURL = asServer.getContextUrls().getWebAppURL();
         userInfo = asServer.getContextTenant().getContextUser();
+        sessionCookie = loginLogoutClient.login();
     }
 
     protected void init(String domainKey, String userKey) throws Exception {
         asServer = new AutomationContext("AS", "appServerInstance0001", domainKey, userKey);
         loginLogoutClient = new LoginLogoutClient(asServer);
         sessionCookie = loginLogoutClient.login();
-        backendURL = asServer.getContextUrls().getBackEndUrl();
+        backendURL = getMgtUrlHttps();
         webAppURL = asServer.getContextUrls().getWebAppURL();
         userInfo = asServer.getContextTenant().getContextUser();
     }
@@ -94,13 +94,17 @@ public class ASIntegrationTest {
 
         return webAppURL;
     }
-
+    @Deprecated()
     protected String getServiceUrl(String serviceName) throws XPathExpressionException {
         return asServer.getContextUrls().getServiceUrl() + "/" + serviceName;
     }
 
+    protected String getServiceUrlHttp(String serviceName) throws XPathExpressionException {
+        return asServer.getContextUrls().getServiceUrl() + "/" + serviceName;
+    }
+
     protected String getServiceUrlHttps(String serviceName) throws XPathExpressionException {
-        return asServer.getContextUrls().getSecureServiceUrl() + "/" + serviceName;
+        return getWrkUrlHttps() + "/" + serviceName;
     }
 
     protected void deployAarService(String serviceName, String fileNameWithExtension,
@@ -144,11 +148,17 @@ public class ASIntegrationTest {
                                                        sessionCookie, serviceName);
     }
 
+    protected boolean isServiceDeployedOnWrk(String serviceName)
+            throws RemoteException, XPathExpressionException {
+        return ServiceDeploymentUtil.isServiceDeployed(getWrkUrlHttps(), sessionCookie, serviceName);
+    }
+
     protected boolean isServiceFaulty(String serviceName) throws RemoteException {
         return ServiceDeploymentUtil.isServiceFaulty(backendURL,
                                                      sessionCookie, serviceName);
     }
 
+    @Deprecated
     protected String getSecuredServiceEndpoint(String serviceName) throws XPathExpressionException {
         return asServer.getContextUrls().getSecureServiceUrl() + "/" + serviceName;
     }
@@ -209,11 +219,25 @@ public class ASIntegrationTest {
         return dataSourceInfo;
     }
 
-    protected void cleanup() throws RemoteException {
+    protected void cleanup() throws Exception {
         asServer = null;
     }
 
-    public static void main(String[] args) {
+    protected String getMgtUrlHttps() throws XPathExpressionException {
+        return asServer.getContextUrls().getBackEndUrl();
     }
+
+    protected String getMgtUrlHttp() throws XPathExpressionException {
+        return asServer.getContextUrls().getBackEndUrl();
+    }
+
+    protected String getWrkUrlHttps() throws XPathExpressionException {
+        return asServer.getContextUrls().getSecureServiceUrl();
+    }
+
+    protected String getWrkUrlHttp() throws XPathExpressionException {
+        return asServer.getContextUrls().getServiceUrl();
+    }
+
 }
 

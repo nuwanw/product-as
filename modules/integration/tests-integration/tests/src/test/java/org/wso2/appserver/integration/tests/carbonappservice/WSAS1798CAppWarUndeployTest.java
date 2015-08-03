@@ -20,20 +20,29 @@ package org.wso2.appserver.integration.tests.carbonappservice;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
+import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
+import org.wso2.appserver.integration.common.utils.CarAppDeploymentUtil;
+import org.wso2.appserver.integration.common.utils.WebAppDeploymentUtil;
+import org.wso2.appserver.integration.common.utils.WebAppTypes;
+import org.wso2.carbon.automation.engine.context.TestUserMode;
 import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
+import org.wso2.carbon.automation.test.utils.http.client.HttpRequestUtil;
+import org.wso2.carbon.automation.test.utils.http.client.HttpResponse;
 import org.wso2.carbon.integration.common.admin.client.ApplicationAdminClient;
 import org.wso2.carbon.integration.common.admin.client.CarbonAppUploaderClient;
-import org.wso2.appserver.integration.common.utils.WebAppDeploymentUtil;
-import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
 
 import javax.activation.DataHandler;
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 /*
@@ -42,76 +51,117 @@ import static org.testng.Assert.assertTrue;
 public class WSAS1798CAppWarUndeployTest extends ASIntegrationTest {
 
     private static final Log log = LogFactory.getLog(WSAS1798CAppWarUndeployTest.class);
+    private final String cAppName = "WarCApp_1.0.0";
+    private final String webAppName = "appServer-valid-deploymant-1.0.0";
+    private ApplicationAdminClient appAdminClient;
+    private TestUserMode userMode;
+    private String webAppUrl;
+
+    @Factory(dataProvider = "userModeProvider")
+    public WSAS1798CAppWarUndeployTest(TestUserMode userMode) {
+        this.userMode = userMode;
+    }
+
+    @DataProvider
+    private static TestUserMode[][] userModeProvider() {
+        return new TestUserMode[][]{
+                new TestUserMode[]{TestUserMode.SUPER_TENANT_USER},
+                new TestUserMode[]{TestUserMode.TENANT_USER},
+        };
+    }
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
-        super.init();
+        super.init(userMode);
+        appAdminClient = new ApplicationAdminClient(backendURL, sessionCookie);
+        webAppUrl = getWebAppURL(WebAppTypes.WEBAPPS) + "/" + webAppName;
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void cleanup() throws Exception {
+        super.cleanup();
+        if (checkCAppInAppList()) {
+            appAdminClient.deleteApplication(cAppName);
+            assertTrue(CarAppDeploymentUtil.isCarFileUnDeployed(backendURL, sessionCookie, cAppName)
+                    , cAppName + " Car file undeployment faild for user" + userInfo.getUserName());
+        }
     }
 
     @Test(groups = "wso2.as", description = "upload car file and verify deployment")
-    public void carApplicationUpload() throws Exception {
-        assertTrue(isCAppApllcationUplodedSuccessfully(), "Web application deployment failed");
-        log.info("WarCApp_1.0.0.car uploaded successfully");
+    public void carApplicationUploadTest() throws Exception {
+        deployCApp();
+        assertTrue(CarAppDeploymentUtil.isCarFileDeployed(backendURL, sessionCookie, cAppName),
+                   "CApp Deployment failed");
+        log.info(cAppName + ".car uploaded successfully for user " + userInfo.getUserName());
     }
 
     @Test(groups = "wso2.as", description = "verify the deployed services list",
-            dependsOnMethods = "carApplicationUpload")
-    public void verifyAppList() throws Exception {
-        assertTrue(isVerifiedAppList(), "CApp deployment not successful");
+          dependsOnMethods = "carApplicationUploadTest")
+    public void verifyWebAppDeploymentTest() throws Exception {
+        assertTrue(WebAppDeploymentUtil.
+                isWebApplicationDeployed(backendURL, sessionCookie, webAppName)
+                , "car app failed to deploy the web application for user " + userInfo.getUserName());
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppUrl),
+                   "Web App is not deployed on worker node for user " + userInfo.getUserName());
+        HttpResponse response = HttpRequestUtil.sendGetRequest(webAppUrl, null);
+        assertNotNull(response, "No HTTP response from web application deployed from CAPP");
+        assertEquals(response.getData(), "<status>success</status>", "Web Application invocation failed");
     }
 
     @Test(groups = "wso2.as", description = "Delete Composite Application",
-            dependsOnMethods = "verifyAppList")
-    public void carAppDelete() throws Exception {   // deletes the car application and the service
-        ApplicationAdminClient appAdminClient = new ApplicationAdminClient(backendURL, sessionCookie);
-        appAdminClient.deleteApplication("WarCApp_1.0.0");
-        Thread.sleep(30000);
-        log.info("WarCApp_1.0.0 CApp deleted");
+          dependsOnMethods = "verifyWebAppDeploymentTest")
+    public void carAppDeleteTest()
+            throws Exception {   // deletes the car application and the service
+        appAdminClient.deleteApplication(cAppName);
+        assertTrue(CarAppDeploymentUtil.isCarFileUnDeployed(backendURL, sessionCookie, cAppName)
+                , "Car file undeployment failed for user " + userInfo.getUserName());
+        log.info(cAppName + " CApp deleted");
     }
 
-    @Test(groups = "wso2.as", description = "Invoke web application",
-            dependsOnMethods = "carAppDelete")
-    public void testVerifyWebApp() throws Exception {
-        assertFalse(WebAppDeploymentUtil.
-                        isWebApplicationDeployed(backendURL, sessionCookie, "appServer-valid-deploymant-1.0.0"),
-                "War CApp un-deployment not successful");
+    @Test(groups = "wso2.as", description = "Web application undeployment",
+          dependsOnMethods = "carAppDeleteTest")
+    public void verifyWebAppUnDeploymentTest() throws Exception {
+        assertTrue(WebAppDeploymentUtil.
+                           isWebApplicationUnDeployed(backendURL, sessionCookie, webAppName),
+                   "CApp failed to undeploy the wep application for user " + userInfo.getUserName());
+        assertTrue(WebAppDeploymentUtil.isWebApplicationNotAvailable(webAppUrl),
+                   "Web App is not undeployed on worker node for user " + userInfo.getUserName());
     }
 
     @Test(groups = "wso2.as", description = "War CApp Re-Deployment",
-            dependsOnMethods = "testVerifyWebApp")
-    public void carAppReDeploy() throws Exception {
-        assertTrue(isCAppApllcationUplodedSuccessfully(), "Web application deployment failed");
-        assertTrue(isVerifiedAppList(), "CApp deployment not successful");
-        log.info("WarCApp_1.0.0.car Re-Deployed successfully");
+          dependsOnMethods = "verifyWebAppUnDeploymentTest")
+    public void carAppReDeploymentTest() throws Exception {
+        deployCApp();
+        assertTrue(CarAppDeploymentUtil.isCarFileDeployed(backendURL, sessionCookie, cAppName),
+                   "CApp Deployment failed for user" + userInfo.getUserName());
+        assertTrue(WebAppDeploymentUtil.
+                isWebApplicationDeployed(backendURL, sessionCookie, webAppName)
+                , "car app failed to deploy the web application for user " + userInfo.getUserName());
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppUrl),
+                   "Web App is not deployed on worker node for user " + userInfo.getUserName());
+        HttpResponse response = HttpRequestUtil.sendGetRequest(webAppUrl, null);
+        assertNotNull(response, "No HTTP response from web application deployed from CAPP");
+        assertEquals(response.getData(), "<status>success</status>", "Web Application invocation failed");
+        log.info(cAppName + ".car uploaded successfully");
     }
 
-    /**
-     * Upload the CApp and check whether the CApp uploaded successfully
-     *
-     * @return boolean
-     * @throws Exception
-     */
-    private boolean isCAppApllcationUplodedSuccessfully() throws Exception {
+    private void deployCApp() throws Exception {
         CarbonAppUploaderClient carbonAppClient = new CarbonAppUploaderClient(backendURL, sessionCookie);
 
         URL url = new URL("file://" + FrameworkPathUtil.getSystemResourceLocation() +
-                "artifacts" + File.separator + "AS" + File.separator + "car" + File.separator +
-                "WarCApp_1.0.0.car");
+                          "artifacts" + File.separator + "AS" + File.separator + "car" + File.separator +
+                          cAppName + ".car");
         DataHandler dataHandler = new DataHandler(url);
-        carbonAppClient.uploadCarbonAppArtifact("WarCApp_1.0.0.car", dataHandler);
-        return WebAppDeploymentUtil.
-                isWebApplicationDeployed(backendURL, sessionCookie, "appServer-valid-deploymant-1.0.0");
+        carbonAppClient.uploadCarbonAppArtifact(cAppName + ".car", dataHandler);
+
     }
 
-    /**
-     * Verify the deployed services list
-     *
-     * @return boolean
-     * @throws Exception
-     */
-    public boolean isVerifiedAppList() throws Exception {
-        ApplicationAdminClient applicationAdminClient = new ApplicationAdminClient(backendURL, sessionCookie);
-        String[] applicationList = applicationAdminClient.listAllApplications();
-        return Arrays.asList(applicationList).contains("WarCApp_1.0.0");
+    private boolean checkCAppInAppList() throws Exception {
+        String[] applicationList = appAdminClient.listAllApplications();
+        if(applicationList == null || applicationList.length < 1) {
+            return false;
+        }
+        return Arrays.asList(applicationList).contains(cAppName);
     }
+
 }

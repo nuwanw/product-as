@@ -15,12 +15,17 @@
 
 package org.wso2.appserver.integration.tests.logviewer;
 
+import org.apache.axiom.om.OMAbstractFactory;
+import org.apache.axiom.om.OMElement;
+import org.apache.axiom.om.OMFactory;
+import org.apache.axiom.om.OMNamespace;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.appserver.integration.common.clients.LogViewerClient;
 import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
+import org.wso2.carbon.automation.test.utils.axis2client.AxisServiceClient;
 import org.wso2.carbon.logging.view.stub.types.carbon.LogEvent;
 import org.wso2.carbon.logging.view.stub.types.carbon.PaginatedLogEvent;
 import org.wso2.carbon.logging.view.stub.types.carbon.PaginatedLogFileInfo;
@@ -36,8 +41,10 @@ public class LogViewerTestCase extends ASIntegrationTest {
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
-        // start the server in super tenant mode
         super.init();
+        AxisServiceClient axisServiceClient = new AxisServiceClient();
+        String endpoint = getServiceUrlHttp("echo");
+        axisServiceClient.sendReceive(createPayLoad(), endpoint, "echoString");
     }
 
     @Test(groups = "wso2.as", description = "Open the log viewer and get logs")
@@ -75,6 +82,16 @@ public class LogViewerTestCase extends ASIntegrationTest {
         PaginatedLogFileInfo logFileInfo = logViewerClient.getLocalLogFiles(0, "", "");
         assertEquals(logFileInfo.getLogFileInfo()[0].getLogDate(), "0_Current Log",
                      "Unexpected log date was returned.");
+    }
+
+    private static OMElement createPayLoad() {
+        OMFactory fac = OMAbstractFactory.getOMFactory();
+        OMNamespace omNs = fac.createOMNamespace("http://echo.services.core.carbon.wso2.org", "ns");
+        OMElement getOme = fac.createOMElement("echoString", omNs);
+        OMElement getOmeTwo = fac.createOMElement("in", omNs);
+        getOmeTwo.setText("25");
+        getOme.addChild(getOmeTwo);
+        return getOme;
     }
 
 }

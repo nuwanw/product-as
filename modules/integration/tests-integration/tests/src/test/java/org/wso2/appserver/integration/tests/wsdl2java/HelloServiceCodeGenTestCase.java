@@ -76,7 +76,7 @@ public class HelloServiceCodeGenTestCase extends ASIntegrationTest {
     }
 
     @AfterClass(alwaysRun = true)
-    public void cleanResources() throws RemoteException {
+    public void cleanResources() throws Exception {
         deleteService("HelloService");
         super.cleanup();
     }

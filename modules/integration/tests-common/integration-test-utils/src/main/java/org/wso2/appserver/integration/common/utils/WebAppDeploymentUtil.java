@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.Calendar;
 import java.util.List;
+
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
@@ -63,7 +65,70 @@ public class WebAppDeploymentUtil {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException ignored) {
+                log.warn(ignored.getMessage());
 
+            }
+        }
+        return Boolean.FALSE;
+    }
+
+    /**
+     * This will check whether the given web application url(GET) can be accessed within the defined
+     * time period by sending the request periodically and check it return 200 or 202 https response codes
+     * @param getUrl web application url(GET)
+     * @return true if the web application can be accessed
+     * @throws IOException when IO error occurred while sending http get request
+     */
+    public static boolean isWebApplicationAvailable(String getUrl) throws IOException {
+        log.info("waiting " + WEBAPP_DEPLOYMENT_DELAY + " millis for web app availability " + getUrl);
+
+        Calendar startTime = Calendar.getInstance();
+        HttpResponse response;
+        while ((Calendar.getInstance().getTimeInMillis() - startTime.getTimeInMillis()) < WEBAPP_DEPLOYMENT_DELAY) {
+            response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            if(response != null) {
+                if(response.getResponseCode() == HttpStatus.SC_OK || response.getResponseCode() == HttpStatus.SC_ACCEPTED) {
+                    return Boolean.TRUE;
+                }
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+                log.warn(ignored.getMessage());
+            }
+        }
+        return Boolean.FALSE;
+    }
+
+    /**
+     * This will check whether the given web application url(GET) can not be accessed within the defined
+     * time period by sending the request periodically and check it does not return 200 or 202 https
+     * response codes
+     * @param getUrl web application url(GET)
+     * @return true if the web application can be accessed
+     * @throws IOException when IO error occurred while sending http get request
+     */
+    public static boolean isWebApplicationNotAvailable(String getUrl) throws Exception {
+        log.info("waiting " + WEBAPP_DEPLOYMENT_DELAY + " millis for web app availability " + getUrl);
+
+        Calendar startTime = Calendar.getInstance();
+        HttpResponse response;
+        while ((Calendar.getInstance().getTimeInMillis() - startTime.getTimeInMillis()) < WEBAPP_DEPLOYMENT_DELAY) {
+            response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            if(response != null) {
+                if(!(response.getResponseCode() == HttpStatus.SC_OK
+                     || response.getResponseCode() == HttpStatus.SC_ACCEPTED)) {
+                    return Boolean.TRUE;
+                }
+            } else {
+                return Boolean.TRUE;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+                log.warn(ignored.getMessage());
             }
         }
         return Boolean.FALSE;
@@ -92,7 +157,7 @@ public class WebAppDeploymentUtil {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException ignored) {
-
+                log.warn(ignored.getMessage());
             }
         }
         return Boolean.FALSE;
@@ -122,7 +187,7 @@ public class WebAppDeploymentUtil {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException ignored) {
-
+                log.warn(ignored.getMessage());
             }
         }
         return Boolean.FALSE;

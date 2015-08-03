@@ -29,7 +29,11 @@
         <!--
          Change this to product|platform/cloud to execute test on specific environment
         -->
-        <executionEnvironment>standalone</executionEnvironment>
+        <executionEnvironment>platform</executionEnvironment>
+        <!--
+         Change this to user/tenant to execute test with user mode or tenant mode
+        -->
+        <!--<multiTenantMode>false</multiTenantMode>-->
         <!--
          Change this to true if you want to generate coverage statistics
         -->
@@ -62,7 +66,7 @@
     -->
     <datasources>
         <datasource name="dataService">
-            <url>jdbc:h2:</url>
+            <url>jdbc:h2:testDB</url>
             <username>wso2carbon</username>
             <password>wso2carbon</password>
             <driverClassName>org.h2.Driver</driverClassName>
@@ -73,24 +77,7 @@
             <password>wso2carbon</password>
             <driverClassName>org.h2.Driver</driverClassName>
         </datasource>
-        <datasource name="default">
-            <url>/repository/database/WSO2CARBON_DB</url>
-            <username>wso2carbon</username>
-            <password>wso2carbon</password>
-            <driverClassName>org.h2.Driver</driverClassName>
-        </datasource>
     </datasources>
-
-    <!-- Database urls for change password testing by carbon tool chpasswd.sh-->
-    <databases>
-        <database name="H2DB">
-            <url>/repository/database/WSO2CARBON_DB</url>
-        </database>
-        <database name="MySQL">
-            <url>jdbc:mysql://localhost:3306/userstore?autoReconnect=true</url>
-        </database>
-    </databases>
-
     <security>
         <!--
                     KeyStore which will be used for encrypting/decrypting passwords
@@ -142,24 +129,9 @@
                     </user>
                 </admin>
                 <users>
-                    <user key="userKey1">
-                        <userName>testu1</userName>
-                        <password>testu1pass</password>
-                    </user>
-                    <user key="userKey2">
-                        <userName>testu2</userName>
-                        <password>testu2pass</password>
-                    </user>
-                    <user key="userKey3">
-                        <userName>testu3</userName>
-                        <password>testu3pass</password>
-                    </user>
-                    <user key="userKey4">
-                        <userName>testu4</userName>
-                        <password>testu4pass</password>
-                        <roles>
-                            <role>rolenonadmin</role>
-                        </roles>
+                    <user key="user1">
+                        <userName>user1</userName>
+                        <password>testuser123</password>
                     </user>
                 </users>
             </tenant>
@@ -169,76 +141,17 @@
                 <admin>
                     <user key="admin">
                         <userName>admin</userName>
-                            <password>admin</password>
+                        <password>admin</password>
                     </user>
                 </admin>
                 <users>
                     <user key="user1">
-                        <userName>testuser11</userName>
-                        <password>testuser11</password>
-                    </user>
-                    <user key="user2">
-                        <userName>testuser21</userName>
-                        <password>testuser21</password>
-                    </user>
-                    <user key="user3">
-                        <userName>testuser31</userName>
-                        <password>testuser31</password>
-                        <roles>
-                            <role>rolenonadmin</role>
-                        </roles>
+                        <userName>testautouser</userName>
+                        <password>test123</password>
                     </user>
                 </users>
             </tenant>
-            <!--<tenant domain="abc.com" key="abcDomainKey">-->
-                <!--<admin>-->
-                    <!--<user key="admin">-->
-                        <!--<userName>admin</userName>-->
-                        <!--<password>admin</password>-->
-                    <!--</user>-->
-                <!--</admin>-->
-                <!--<users>-->
-                    <!--<user key="user1">-->
-                        <!--<userName>testuser11</userName>-->
-                        <!--<password>testuser11</password>-->
-                    <!--</user>-->
-                    <!--<user key="user2">-->
-                        <!--<userName>testuser21</userName>-->
-                        <!--<password>testuser21</password>-->
-                    <!--</user>-->
-                <!--</users>-->
-            <!--</tenant>-->
-            <!--<tenant domain="malintha.com" key="malinthaDomainKey">-->
-                <!--<admin>-->
-                    <!--<user key="admin">-->
-                        <!--<userName>admin</userName>-->
-                        <!--<password>admin</password>-->
-                    <!--</user>-->
-                <!--</admin>-->
-                <!--<users>-->
-                    <!--<user key="userm1">-->
-                        <!--<userName>testuse11</userName>-->
-                        <!--<password>testuse11</password>-->
-                    <!--</user>-->
-                    <!--<user key="userm2">-->
-                        <!--<userName>testuse21</userName>-->
-                        <!--<password>testuse21</password>-->
-                    <!--</user>-->
-                <!--</users>-->
-            <!--</tenant>-->
         </tenants>
-        <roles>
-            <role name="rolenonadmin" key="rolenonadmin">
-                <permissions>
-                    <permission>/permission/admin/login</permission>
-                </permissions>
-            </role>
-            <role name="testrole" key="testrole">
-                <permissions>
-                    <permission>/permission/admin/login</permission>
-                </permissions>
-            </role>
-        </roles>
     </userManagement>
     <!--
    This section will initiate the initial deployment of the platform required by
@@ -248,11 +161,11 @@
         <!--
         cluster instance details to be used to platform test execution
         -->
-        <productGroup name="AS" clusteringEnabled="false" default="true">
+        <productGroup name="AS" clusteringEnabled="true" default="true">
 
-            <instance name="appServerInstance0001" type="standalone" nonBlockingTransportEnabled="false">
+            <instance name="manager" type="standalone" nonBlockingTransportEnabled="false">
                 <hosts>
-                    <host type="default">localhost</host>
+                    <host type="default">as530-node-01</host>
                 </hosts>
                 <ports>
                     <port type="http">9763</port>
@@ -261,35 +174,36 @@
                 <properties>
                 </properties>
             </instance>
-            <instance name="appServerInstance0002" type="standalone" nonBlockingTransportEnabled="false">
+            <instance name="worker-1" type="standalone" nonBlockingTransportEnabled="false">
                 <hosts>
-                    <host type="default">localhost</host>
-                </hosts>
-                <ports>
-                    <port type="http">9764</port>
-                    <port type="https">9444</port>
-                </ports>
-                <properties>
-                </properties>
-            </instance>
-            <instance name="appServerInstance0003" type="standalone" nonBlockingTransportEnabled="false">
-                <hosts>
-                    <host type="default">localhost</host>
-                </hosts>
-                <ports>
-                    <port type="http">9765</port>
-                    <port type="https">9445</port>
-                </ports>
-                <properties>
-                </properties>
-            </instance>
-            <instance name="appServerDummy" type="standalone" nonBlockingTransportEnabled="false">
-                <hosts>
-                    <host type="default">localhost</host>
+                    <host type="default">as530-node-04</host>
                 </hosts>
                 <ports>
                     <port type="http">9763</port>
                     <port type="https">9443</port>
+                </ports>
+                <properties>
+                </properties>
+            </instance>
+            <instance name="worker-2" type="standalone" nonBlockingTransportEnabled="false">
+                <hosts>
+                    <host type="default">as530-node-05</host>
+                </hosts>
+                <ports>
+                    <port type="http">9763</port>
+                    <port type="https">9443</port>
+                </ports>
+                <properties>
+                </properties>
+            </instance>
+            <instance name="lbwm" type="lb_worker_manager" nonBlockingTransportEnabled="false">
+                <hosts>
+                    <host type="worker">appserver.carbon-test.org</host>
+                    <host type="manager">mgt.appserver.carbon.test.org</host>
+                </hosts>
+                <ports>
+                    <port type="http">80</port>
+                    <port type="https">443</port>
                 </ports>
                 <properties>
                 </properties>
@@ -301,21 +215,10 @@
         <platformExecutionManager>
             <extentionClasses>
                 <class>
-                    <name>org.wso2.carbon.automation.extensions.servers.carbonserver.CarbonServerExtension</name>
-                    <!--<parameter name="-DportOffset" value="0" />-->
-                    <!--<parameter name="cmdArg" value="debug 8000" />-->
-                </class>
-                <class>
                     <name>org.wso2.carbon.integration.common.extensions.usermgt.UserPopulateExtension</name>
                 </class>
-                <!--<class>-->
-                    <!--<name>org.wso2.carbon.automation.extensions.servers.coverageServer.RemoteCoverageServerExtension</name>-->
-                    <!--<parameter name="coverageServerPort" value="6331" />-->
-                    <!--<parameter name="coverageDumpFilePath" value="/Users/krishantha/Desktop/jacoco" />-->
-                <!--</class>-->
             </extentionClasses>
         </platformExecutionManager>
-
 
         <PlatformSuiteManager>
             <extentionClasses>

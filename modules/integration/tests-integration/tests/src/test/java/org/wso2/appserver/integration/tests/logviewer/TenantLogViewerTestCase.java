@@ -19,8 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
 import org.wso2.appserver.integration.common.clients.LogViewerClient;
 import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
@@ -28,6 +26,7 @@ import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
 import org.wso2.appserver.integration.common.utils.WebAppDeploymentUtil;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
 import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
+import org.wso2.carbon.integration.common.admin.client.TenantManagementServiceClient;
 import org.wso2.carbon.logging.view.stub.types.carbon.LogEvent;
 import org.wso2.carbon.logging.view.stub.types.carbon.PaginatedLogEvent;
 import org.wso2.carbon.logging.view.stub.types.carbon.PaginatedLogFileInfo;
@@ -42,33 +41,33 @@ import static org.testng.Assert.assertTrue;
  */
 public class TenantLogViewerTestCase extends ASIntegrationTest {
     private static final Log log = LogFactory.getLog(TenantLogViewerTestCase.class);
-    private TestUserMode userMode;
     // a jaxrs webapp with this name will be deployed in the tenant domain to check the
     // application logs
-    private static final String SAMPLE_APP_NAME = "jaxrs_sample_02";
-    private static final String SAMPLE_APP_NAME_WAR = SAMPLE_APP_NAME + ".war";
+    private final String SAMPLE_APP_NAME = "jaxrs_sample_02";
+    private final String SAMPLE_APP_NAME_WAR = SAMPLE_APP_NAME + ".war";
     private final String hostName = "localhost";
+    private WebAppAdminClient webAppAdminClient;
+    private int tenantId;
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
-        super.init(userMode);
-    }
+        super.init(TestUserMode.TENANT_USER);
+        webAppAdminClient = new WebAppAdminClient(backendURL, sessionCookie);
+        boolean isDeployed =deploySampleWebAppInTenantDomain();
+        assertTrue(isDeployed, "WebApp not deployed");
 
-    @Factory(dataProvider = "userModeProvider")
-    public TenantLogViewerTestCase(TestUserMode userMode) {
-        this.userMode = userMode;
-    }
-
-    @DataProvider
-    private static TestUserMode[][] userModeProvider() {
-        return new TestUserMode[][] {
-                new TestUserMode[]{TestUserMode.TENANT_USER}
-        };
+        String superUserSession = loginLogoutClient.login(asServer.getSuperTenant().getTenantAdmin().getUserName()
+                , asServer.getSuperTenant().getTenantAdmin().getPassword(), hostName);
+        TenantManagementServiceClient tenantManagementServiceClient = new TenantManagementServiceClient
+                (backendURL, superUserSession);
+        //getting the tenant id
+        tenantId = tenantManagementServiceClient.getTenant(userInfo.getUserDomain()).getTenantId();
+        // deploy a web app in the current tenant domain before acquiring application logs
     }
 
     @AfterClass(alwaysRun = true)
     public void webApplicationDelete() throws Exception {
-        WebAppAdminClient webAppAdminClient = new WebAppAdminClient(backendURL, sessionCookie);
+
         webAppAdminClient.deleteWebAppFile(SAMPLE_APP_NAME_WAR, hostName);
         log.info("jaxrs_sample_02.war deleted successfully");
     }
@@ -76,8 +75,6 @@ public class TenantLogViewerTestCase extends ASIntegrationTest {
     @Test(groups = "wso2.as", description = "Deploy a jaxrs webapp and then" +
                                             "Open the application log viewer and get logs")
     public void testGetApplicationLogs() throws Exception {
-        // deploy a web app in the current tenant domain before acquiring application logs
-        deploySampleWebAppInTenantDomain();
         LogViewerClient logViewerClient = new LogViewerClient(backendURL, sessionCookie);
         PaginatedLogEvent logEvents = logViewerClient.getPaginatedApplicationLogEvents(0, "ALL", "",
                                                                                        SAMPLE_APP_NAME,
@@ -85,8 +82,8 @@ public class TenantLogViewerTestCase extends ASIntegrationTest {
                                                                                        "");
         LogEvent receivedLogEvent = logEvents.getLogInfo()[0];
         assertEquals(receivedLogEvent.getAppName(), SAMPLE_APP_NAME,
-                     "Invalid app name was returened.");
-        assertEquals(receivedLogEvent.getTenantId(), "1",
+                     "Invalid app name was returned.");
+        assertEquals(Integer.parseInt(receivedLogEvent.getTenantId()), tenantId,
                      "Unexpected tenant Id was returned.");
     }
 
@@ -94,13 +91,14 @@ public class TenantLogViewerTestCase extends ASIntegrationTest {
     public void testGetPaginatedLogEvents() throws Exception {
         LogViewerClient logViewerClient = new LogViewerClient(backendURL, sessionCookie);
         PaginatedLogEvent logEvents = logViewerClient
-                .getPaginatedLogEvents(0, "ALL", "", "wso2.com", "");
+                .getPaginatedLogEvents(0, "ALL", "", userInfo.getUserDomain(), "");
 
         LogEvent receivedLogEvent = logEvents.getLogInfo()[0];
 
         assertEquals(receivedLogEvent.getServerName(), "AS",
                      "Unexpected server name was returned.");
-        assertEquals(receivedLogEvent.getTenantId(), "1",
+
+        assertEquals(Integer.parseInt(receivedLogEvent.getTenantId()), tenantId,
                      "Unexpected tenant Id was returned.");
     }
 
@@ -119,17 +117,16 @@ public class TenantLogViewerTestCase extends ASIntegrationTest {
      *
      * @throws Exception
      */
-    private void deploySampleWebAppInTenantDomain() throws Exception {
-        WebAppAdminClient webAppAdminClient =
-                new WebAppAdminClient(backendURL, sessionCookie);
+    private boolean deploySampleWebAppInTenantDomain() throws Exception {
         String location = FrameworkPathUtil.getSystemResourceLocation() +
                           "artifacts" + File.separator + "AS" + File.separator + "jaxrs" + File
                 .separator;
         webAppAdminClient.uploadWarFile(location + File.separator + SAMPLE_APP_NAME_WAR);
+        //check deployment on manager
         boolean isDeployed =
                 WebAppDeploymentUtil
                         .isWebApplicationDeployed(backendURL, sessionCookie, SAMPLE_APP_NAME);
-        assertTrue(isDeployed, "WebApp not deployed");
+        return isDeployed;
     }
 
 }

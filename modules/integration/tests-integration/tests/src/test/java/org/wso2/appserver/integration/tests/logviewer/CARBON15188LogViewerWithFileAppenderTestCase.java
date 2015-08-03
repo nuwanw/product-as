@@ -24,6 +24,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.appserver.integration.common.clients.AuthenticateStubUtil;
 import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
+import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
+import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
 import org.wso2.carbon.automation.test.utils.common.TestConfigurationProvider;
 import org.wso2.carbon.integration.common.utils.mgt.ServerConfigurationManager;
 import org.wso2.carbon.logging.view.stub.LogViewerLogViewerException;
@@ -38,6 +40,8 @@ import java.rmi.RemoteException;
  * is set as the Appender for CARBON_LOGFILE.
  *
  */
+
+@SetEnvironment(executionEnvironments = {ExecutionEnvironment.STANDALONE})
 public class CARBON15188LogViewerWithFileAppenderTestCase extends ASIntegrationTest {
     private ServerConfigurationManager serverConfigurationManager;
 
