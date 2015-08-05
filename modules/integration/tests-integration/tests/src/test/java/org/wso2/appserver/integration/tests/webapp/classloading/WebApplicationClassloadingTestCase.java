@@ -28,22 +28,21 @@ import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
 import org.wso2.carbon.automation.test.utils.http.client.HttpClientUtil;
 
 import java.io.File;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-public abstract class WebApplicationClassloadingTestCase extends
-        ASIntegrationTest {
+public abstract class WebApplicationClassloadingTestCase extends ASIntegrationTest {
 
 	public static final String PASS = "Pass";
 	public static final String FAIL = "Fail";
-    private final String hostName = "localhost";
+    private String hostName;
 
 	private String webAppFileName;
 	private String webAppName;
-	//private String webAppURL;
 	protected WebAppAdminClient webAppAdminClient;
 	
 
@@ -51,6 +50,7 @@ public abstract class WebApplicationClassloadingTestCase extends
 	public void init() throws Exception {
 		super.init();
 		webAppAdminClient = new WebAppAdminClient(backendURL, sessionCookie);
+        hostName = new URL(getWrkUrlHttp()).getHost();
 
 	}
 
@@ -76,12 +76,13 @@ public abstract class WebApplicationClassloadingTestCase extends
 	}
 	
 	@Test(groups = "wso2.as", description = "Invoke web application", dependsOnMethods = "webApplicationDeploymentTest")
-	public void testInvokeWebApp() throws Exception {	
+	public void testInvokeWebApp() throws Exception {
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppURL), "Web App not deployed on workers");
 		Map<String, String> results = toResultMap(runAndGetResultAsString(webAppURL));
-		assertEquals(PASS, results.get("Tomcat"));
-		assertEquals(PASS, results.get("Carbon"));
-		assertEquals(PASS, results.get("CXF"));
-		assertEquals(PASS, results.get("Spring"));
+		assertEquals(PASS, results.get("Tomcat"), "Web app response is incorrect");
+		assertEquals(PASS, results.get("Carbon"), "Web app response is incorrect");
+		assertEquals(PASS, results.get("CXF"), "Web app response is incorrect");
+		assertEquals(PASS, results.get("Spring"), "Web app response is incorrect");
 	}
 
 	protected OMElement runAndGetResultAsOMElement(String webAppURL)

@@ -34,6 +34,7 @@ import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
 
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Paths;
 
 import static org.testng.Assert.assertTrue;
@@ -48,7 +49,7 @@ public class WSAS1073WebApplicationSystemClassLoadingTestCase extends ASIntegrat
     private final String webAppFileName = "SystemClassLoadingWebapp.war";
     private final String webAppName = "SystemClassLoadingWebapp";
     private HttpClient httpClient = new HttpClient();
-    WebAppAdminClient webAppAdminClient = null;
+    private WebAppAdminClient webAppAdminClient = null;
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
@@ -62,6 +63,8 @@ public class WSAS1073WebApplicationSystemClassLoadingTestCase extends ASIntegrat
                                                   "artifacts", "AS", "war", webAppFileName).toString());
         assertTrue(WebAppDeploymentUtil.isWebApplicationDeployed(backendURL, sessionCookie, webAppName),
                    "Web Application Deployment failed");
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(getWebAppURL(WebAppTypes.WEBAPPS) + "/" + webAppName),
+                   "Web App is not available on worker nodes");
     }
 
     @Test(groups = "wso2.as", description = "Invoke the SystemClassLoadingWebapp",
@@ -81,6 +84,8 @@ public class WSAS1073WebApplicationSystemClassLoadingTestCase extends ASIntegrat
 
     @AfterClass(alwaysRun = true, description = "Removing the webapp")
     public void cleanupWebApps() throws Exception {
-        webAppAdminClient.deleteWebAppFile(webAppFileName, asServer.getDefaultInstance().getHosts().get("default"));
+        webAppAdminClient.deleteWebAppFile(webAppFileName, new URL(getWrkUrlHttp()).getHost());
+        assertTrue(WebAppDeploymentUtil.isWebApplicationUnDeployed(backendURL, sessionCookie, webAppName),
+                   "Web Application Undeployment failed");
     }
 }

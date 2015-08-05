@@ -14,5 +14,19 @@
        </classes>
     </test>
 
+    <test name="webapp-tests" preserve-order="true" parallel="false">
+        <packages>
+            <package name="org.wso2.appserver.integration.tests.webapp.websocket"/>
+            <!--<package name="org.wso2.appserver.integration.tests.webappsampleservice"/>-->
+            <package name="org.wso2.appserver.integration.tests.webapp.classloading"/>
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.concurrency"/>-->
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.faultywebapp"/>-->
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.mgt"/>-->
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.spring"/>-->
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.virtualhost"/>-->
+            <!--<package name="org.wso2.appserver.integration.tests.webapp.jsp"/>-->
+        </packages>
+    </test>
+
 
 </suite>

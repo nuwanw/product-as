@@ -25,6 +25,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
+import org.wso2.appserver.integration.common.utils.WebAppTypes;
+import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
+import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
 
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.Endpoint;
@@ -35,10 +38,11 @@ import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+//web socket does not support when the system fronted with load balancer
+@SetEnvironment(executionEnvironments = {ExecutionEnvironment.STANDALONE})
 public class EchoWebSocketTestCase extends ASIntegrationTest {
 
     private String baseWsUrl;
-    private String baseWssUrl;
 
     private static CountDownLatch messageLatch;
     private static final String SENT_MESSAGE = "Hello World";
@@ -47,40 +51,34 @@ public class EchoWebSocketTestCase extends ASIntegrationTest {
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
         super.init();
-        //parse webapp url to get hostname and port
-        String host = asServer.getInstance().getHosts().get("default");
-        String httpPort = asServer.getInstance().getPorts().get("http");
-        String httpsPort = asServer.getInstance().getPorts().get("https");
-
-        baseWsUrl = "ws://" + host + ":" + httpPort;
-        baseWssUrl = "wss://" + host + ":" + httpsPort; //secure
-        // + "/example/websocket/echoProgrammatic";
+        baseWsUrl = getWebAppURL(WebAppTypes.WEBAPPS).replace("http", "ws");
     }
 
     @Test(groups = "wso2.as", description = "Testing websocket")
-    public void testInvokeEchoSample()  {
-        String echoProgrammaticEndpoint = baseWsUrl + "/example/websocket/echoProgrammatic";;
+    public void testInvokeEchoSample() throws Exception {
+        String echoProgrammaticEndpoint = baseWsUrl + "/example/websocket/echoProgrammatic";
+        messageLatch = new CountDownLatch(1);
 
-        try {
-            messageLatch = new CountDownLatch(1);
+        final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create().build();
 
-            final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create().build();
+        ClientManager client = ClientManager.createClient();
+        ClientEndpoint clientEndpoint = new ClientEndpoint();
+        Session session = client.connectToServer(clientEndpoint,
+                                                 cec, new URI(echoProgrammaticEndpoint));
 
-            ClientManager client = ClientManager.createClient();
-            Session session = client.connectToServer(new clientEndpoint(),
-                                                     cec, new URI(echoProgrammaticEndpoint));
+        session.getBasicRemote().sendText(SENT_MESSAGE);
+        messageLatch.await(100, TimeUnit.SECONDS);
 
-            session.getBasicRemote().sendText(SENT_MESSAGE);
-            messageLatch.await(100, TimeUnit.SECONDS);
+        String message = clientEndpoint.getMessage();
+        Assert.assertNotNull(message, "Message is not received to client");
+        Assert.assertEquals(message, SENT_MESSAGE,
+                            "Websocket Echo response is incorrect.");
 
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            Assert.fail("Websocket initialization failed due to an exception - " +
-                        e.getMessage(), e);
-        }
     }
 
-    private class clientEndpoint extends Endpoint {
+    private class ClientEndpoint extends Endpoint {
+
+        private String message = null;
 
         @Override
         public void onOpen(Session session, EndpointConfig config) {
@@ -90,12 +88,21 @@ public class EchoWebSocketTestCase extends ASIntegrationTest {
                 @Override
                 public void onMessage(String message) {
                     log.info("Received message: " + message);
-                    Assert.assertEquals(message, SENT_MESSAGE,
-                                        "Websocket Echo response is incorrect.");
+                    setMessage(message);
                     messageLatch.countDown();
                 }
             });
         }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+
     }
 
 }

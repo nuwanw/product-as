@@ -18,14 +18,12 @@
 package org.wso2.appserver.integration.tests.webapp.classloading;
 
 import org.testng.annotations.BeforeClass;
-import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
 
 public class CarbonWebApplicationTestCase extends
 		WebApplicationClassloadingTestCase {
 	private final String webAppFileName = "appServer-carbon-cl-app-1.0.0.war";
 	private final String webAppName = "appServer-carbon-cl-app-1.0.0";
 	private final String webAppLocalURL ="/appServer-carbon-cl-app-1.0.0";
-	WebAppAdminClient webAppAdminClient;
 
 	@BeforeClass(alwaysRun = true)
 	public void init() throws Exception {

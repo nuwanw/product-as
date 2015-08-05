@@ -27,7 +27,6 @@ public class TomcatWebApplicationTestCase extends
 	private final String webAppFileName = "appServer-tomcat-cl-app-1.0.0.war";
 	private final String webAppName = "appServer-tomcat-cl-app-1.0.0";
 	private final String webAppLocalURL ="/appServer-tomcat-cl-app-1.0.0";
-	WebAppAdminClient webAppAdminClient;
 
 	@BeforeClass(alwaysRun = true)
 	public void init() throws Exception {

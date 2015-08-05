@@ -18,7 +18,6 @@
 package org.wso2.appserver.integration.tests.webapp.classloading;
 
 import org.testng.annotations.BeforeClass;
-import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
 
 
 public class CXFWebApplicationTestCase extends
@@ -26,7 +25,6 @@ public class CXFWebApplicationTestCase extends
 	private final String webAppFileName = "appServer-cxf-cl-app-1.0.0.war";
 	private final String webAppName = "appServer-cxf-cl-app-1.0.0";
 	private final String webAppLocalURL ="/appServer-cxf-cl-app-1.0.0";
-	WebAppAdminClient webAppAdminClient;
 
 	@BeforeClass(alwaysRun = true)
 	public void init() throws Exception {

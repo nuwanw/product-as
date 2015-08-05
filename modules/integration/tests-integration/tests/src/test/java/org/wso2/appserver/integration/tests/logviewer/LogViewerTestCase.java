@@ -32,6 +32,8 @@ import org.wso2.carbon.logging.view.stub.types.carbon.PaginatedLogFileInfo;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 /**
  * This class test the log viewer feature in the super tenant domain
@@ -68,7 +70,10 @@ public class LogViewerTestCase extends ASIntegrationTest {
         PaginatedLogEvent logEvents = logViewerClient.getPaginatedApplicationLogEvents(0, "ALL", "",
                                                                                        appName, "",
                                                                                        "");
+        assertNotNull(logEvents, "No Log Event found for " + appName);
+        assertTrue(logEvents.getLogInfo().length > 0, "No Log Event found for " + appName);
         LogEvent receivedLogEvent = logEvents.getLogInfo()[0];
+
         // should always return the correct app name as requested
         assertEquals(receivedLogEvent.getAppName(), appName,
                      "Invalid app name was returned.");

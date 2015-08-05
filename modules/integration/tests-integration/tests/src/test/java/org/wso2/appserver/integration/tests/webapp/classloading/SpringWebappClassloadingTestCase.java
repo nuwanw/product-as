@@ -20,9 +20,20 @@ package org.wso2.appserver.integration.tests.webapp.classloading;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.testng.annotations.*;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
-import org.wso2.appserver.integration.common.utils.*;
+import org.wso2.appserver.integration.common.utils.ASIntegrationConstants;
+import org.wso2.appserver.integration.common.utils.ASIntegrationTest;
+import org.wso2.appserver.integration.common.utils.SqlDataSourceUtil;
+import org.wso2.appserver.integration.common.utils.WebAppDeploymentUtil;
+import org.wso2.appserver.integration.common.utils.WebAppMode;
+import org.wso2.appserver.integration.common.utils.WebAppTypes;
+import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
+import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
 import org.wso2.carbon.automation.engine.context.AutomationContext;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
 import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
@@ -39,7 +50,9 @@ import java.util.List;
 
 import static org.testng.Assert.assertTrue;
 
-public class SpringWebappClassloading extends ASIntegrationTest{
+//jar files required to be copied
+@SetEnvironment(executionEnvironments = {ExecutionEnvironment.STANDALONE})
+public class SpringWebappClassloadingTestCase extends ASIntegrationTest {
 
     private WebAppMode webAppMode;
     private static ServerConfigurationManager serverConfigurationManager;
@@ -49,7 +62,7 @@ public class SpringWebappClassloading extends ASIntegrationTest{
     private static int isRestarted = 0;
 
     @Factory(dataProvider = "webAppModeProvider")
-    public SpringWebappClassloading(WebAppMode webAppMode) {
+    public SpringWebappClassloadingTestCase(WebAppMode webAppMode) {
         this.webAppMode = webAppMode;
     }
 
