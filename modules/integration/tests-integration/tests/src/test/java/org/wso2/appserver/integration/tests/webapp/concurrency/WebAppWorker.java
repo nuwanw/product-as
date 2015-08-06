@@ -22,8 +22,13 @@ import org.wso2.appserver.integration.common.clients.WebAppAdminClient;
 import org.apache.axis2.AxisFault;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.automation.engine.context.AutomationContext;
+import org.wso2.carbon.automation.engine.context.TestUserMode;
 
+import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.rmi.RemoteException;
 
 import static org.testng.Assert.assertTrue;
@@ -35,12 +40,20 @@ public class WebAppWorker extends Thread {
     private String backendURL;
     private String filePath;
     private WebAppAdminClient webAppAdminClient;
-    private final String hostName = "localhost";
+    private String hostName;
 
     public WebAppWorker(String session, String backendURL, String filePath) {
         this.session = session;
         this.backendURL = backendURL;
         this.filePath = filePath;
+        try {
+            this.hostName = new URL(new AutomationContext("AS", TestUserMode.SUPER_TENANT_ADMIN)
+                                            .getContextUrls().getWebAppURL()).getHost();
+        } catch (MalformedURLException e) {
+            log.error(e);
+        } catch (XPathExpressionException e) {
+            log.error(e);
+        }
     }
 
     public void run() {

@@ -133,6 +133,14 @@
                         <userName>user1</userName>
                         <password>testuser123</password>
                     </user>
+                    <user key="user2">
+                        <userName>user2</userName>
+                        <password>testuser123</password>
+                    </user>
+                    <user key="user3">
+                        <userName>user3</userName>
+                        <password>testuser123</password>
+                    </user>
                 </users>
             </tenant>
         </superTenant>

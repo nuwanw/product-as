@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.logging.Log;
@@ -79,21 +80,38 @@ public class WebAppDeploymentUtil {
      * @return true if the web application can be accessed
      * @throws IOException when IO error occurred while sending http get request
      */
-    public static boolean isWebApplicationAvailable(String getUrl) throws IOException {
+    public static boolean isWebApplicationAvailable(String getUrl) {
         log.info("waiting " + WEBAPP_DEPLOYMENT_DELAY + " millis for web app availability " + getUrl);
+        short successCount = 0;
 
         Calendar startTime = Calendar.getInstance();
         HttpResponse response;
         while ((Calendar.getInstance().getTimeInMillis() - startTime.getTimeInMillis()) < WEBAPP_DEPLOYMENT_DELAY) {
-            response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            try {
+                response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            } catch (IOException e) {
+                log.warn("Web App not available. " + e.getMessage());
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException ignored) {
+                    log.warn(ignored.getMessage());
+                }
+                continue;
+            }
+
             if(response != null) {
                 if(response.getResponseCode() == HttpStatus.SC_OK || response.getResponseCode() == HttpStatus.SC_ACCEPTED) {
-                    return Boolean.TRUE;
+                    log.info("Web App returned " + response.getResponseCode());
+                    //solution for round robin load balancing among workers
+                    if(++successCount >= 5) {
+                        return Boolean.TRUE;
+                    }
+                    continue;
                 }
             }
 
             try {
-                Thread.sleep(1000);
+                TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException ignored) {
                 log.warn(ignored.getMessage());
             }
@@ -109,13 +127,17 @@ public class WebAppDeploymentUtil {
      * @return true if the web application can be accessed
      * @throws IOException when IO error occurred while sending http get request
      */
-    public static boolean isWebApplicationNotAvailable(String getUrl) throws Exception {
-        log.info("waiting " + WEBAPP_DEPLOYMENT_DELAY + " millis for web app availability " + getUrl);
+    public static boolean isWebApplicationNotAvailable(String getUrl) {
+        log.info("waiting " + WEBAPP_DEPLOYMENT_DELAY + " millis for web app un deployment " + getUrl);
 
         Calendar startTime = Calendar.getInstance();
-        HttpResponse response;
+        HttpResponse response = null;
         while ((Calendar.getInstance().getTimeInMillis() - startTime.getTimeInMillis()) < WEBAPP_DEPLOYMENT_DELAY) {
-            response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            try {
+                response = HttpRequestUtil.sendGetRequest(getUrl, null);
+            } catch (IOException e) {
+                return Boolean.TRUE;
+            }
             if(response != null) {
                 if(!(response.getResponseCode() == HttpStatus.SC_OK
                      || response.getResponseCode() == HttpStatus.SC_ACCEPTED)) {
@@ -126,7 +148,7 @@ public class WebAppDeploymentUtil {
             }
 
             try {
-                Thread.sleep(1000);
+                TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException ignored) {
                 log.warn(ignored.getMessage());
             }

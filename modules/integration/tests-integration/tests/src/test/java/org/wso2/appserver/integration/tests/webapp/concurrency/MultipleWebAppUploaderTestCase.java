@@ -35,15 +35,18 @@ import static org.testng.Assert.assertTrue;
 
 public class MultipleWebAppUploaderTestCase extends ASIntegrationTest {
 
-    public static String webAppFileName1 = "Calendar";
-    public static String webAppFileName2 = "myServletWAR";
-    public static String webAppFileName3 = "sample";
-    public static String filePath1;
-    public static String filePath2;
-    public static String filePath3;
-    WebAppWorker worker1;
-    WebAppWorker worker2;
-    WebAppWorker worker3;
+    private String webAppFileName1 = "Calendar";
+    private String webAppFileName2 = "myServletWAR";
+    private String webAppFileName3 = "sample";
+    private String filePath1;
+    private String filePath2;
+    private String filePath3;
+    private WebAppWorker worker1;
+    private WebAppWorker worker2;
+    private WebAppWorker worker3;
+    private String webAppURL1;
+    private String webAppURL2;
+    private String webAppURL3;
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
@@ -59,6 +62,10 @@ public class MultipleWebAppUploaderTestCase extends ASIntegrationTest {
         filePath3 = FrameworkPathUtil.getSystemResourceLocation() +
                     "artifacts" + File.separator + "AS" + File.separator + "war"
                     + File.separator + "sample.war";
+
+        webAppURL1 = webAppURL + "/" + webAppFileName1 + "/Calendar.html";
+        webAppURL2 = webAppURL + "/" + webAppFileName2 + "/hello";
+        webAppURL3 = webAppURL + "/" + webAppFileName3 + "/hello.jsp";
     }
 
     @Test(groups = "wso2.as", description = "Deploying web application using multiple threads")
@@ -107,22 +114,26 @@ public class MultipleWebAppUploaderTestCase extends ASIntegrationTest {
     @Test(groups = "wso2.as", description = "multiple webapp uploader test case - invoke webapps",
           dependsOnMethods = "testWebApplicationDeployment")
     public void testInvokeWebapps() throws IOException {
-        String webAppURL1 = webAppURL + "/" + webAppFileName1 + "/Calendar.html";
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppURL1), "Web App not available " +
+                                                                               "on worker node " + webAppFileName1);
         HttpResponse response1 = HttpRequestUtil.sendGetRequest(webAppURL1, null);
         assertTrue(response1.getData().contains("<h1>GWT Calendar</h1>"), "Webapp invocation fail");
 
-        String webAppURL2 = webAppURL + "/" + webAppFileName2 + "/hello";
+
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppURL2), "Web App not available " +
+                                                                               "on worker node " + webAppFileName2);
         HttpResponse response2 = HttpRequestUtil.sendGetRequest(webAppURL2, null);
         assertTrue(response2.getData().contains("HelloServlet in myServletWAR!"),
                    "Webapp invocation fail");
 
-        String webAppURL3 = webAppURL + "/" + webAppFileName3 + "/hello.jsp";
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppURL3), "Web App not available " +
+                                                                               "on worker node " + webAppFileName3);
         HttpResponse response3 = HttpRequestUtil.sendGetRequest(webAppURL3, null);
         assertTrue(response3.getData().contains("Sample Application JSP Page"),
                    "Webapp invocation fail");
     }
 
-    @AfterClass(enabled = true)
+    @AfterClass(alwaysRun = true)
     public void testCleanup() throws Exception {
         worker1.deleteWebApp();
         worker2.deleteWebApp();
@@ -132,12 +143,21 @@ public class MultipleWebAppUploaderTestCase extends ASIntegrationTest {
                 backendURL, sessionCookie, webAppFileName1),
                    "Webapp has not deployed");
 
-        assertTrue(WebAppDeploymentUtil.isWebApplicationUnDeployed(
-                backendURL, sessionCookie, webAppFileName2),
-                   "Webapp has not deployed");
 
         assertTrue(WebAppDeploymentUtil.isWebApplicationUnDeployed(
                 backendURL, sessionCookie, webAppFileName2),
                    "Webapp has not deployed");
+
+
+        assertTrue(WebAppDeploymentUtil.isWebApplicationUnDeployed(
+                backendURL, sessionCookie, webAppFileName2),
+                   "Webapp has not deployed");
+
+        assertTrue(WebAppDeploymentUtil.isWebApplicationNotAvailable(webAppURL1), "Web App still available " +
+                                                                                  "on worker node " + webAppFileName1);
+        assertTrue(WebAppDeploymentUtil.isWebApplicationNotAvailable(webAppURL2), "Web App still available " +
+                                                                                  "on worker node " + webAppFileName2);
+        assertTrue(WebAppDeploymentUtil.isWebApplicationNotAvailable(webAppURL3), "Web App still available " +
+                                                                                  "on worker node " + webAppFileName3);
     }
 }

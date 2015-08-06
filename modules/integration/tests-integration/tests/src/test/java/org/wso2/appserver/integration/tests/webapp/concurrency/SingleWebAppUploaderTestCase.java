@@ -36,11 +36,12 @@ import static org.testng.Assert.assertTrue;
 
 public class SingleWebAppUploaderTestCase extends ASIntegrationTest {
 
-    public static String webAppFileName = "SimpleServlet";
-    public static String filePath;
-    WebAppWorker worker1;
-    WebAppWorker worker2;
-    WebAppWorker worker3;
+    private String webAppFileName = "SimpleServlet";
+    private String filePath;
+    private WebAppWorker worker1;
+    private WebAppWorker worker2;
+    private WebAppWorker worker3;
+    private String webAppURL1;
 
     @BeforeClass(alwaysRun = true)
     public void init() throws Exception {
@@ -48,6 +49,7 @@ public class SingleWebAppUploaderTestCase extends ASIntegrationTest {
         filePath = FrameworkPathUtil.getSystemResourceLocation() +
                    "artifacts" + File.separator + "AS" + File.separator + "war"
                    + File.separator + "SimpleServlet.war";
+        webAppURL1 = webAppURL + "/" + webAppFileName + "/simple-servlet";
 
     }
 
@@ -89,7 +91,8 @@ public class SingleWebAppUploaderTestCase extends ASIntegrationTest {
     @Test(groups = "wso2.as", description = "multiple webapp uploader test case - invoke webapps",
           dependsOnMethods = "testWebApplicationDeployment")
     public void testInvokeWebapps() throws IOException {
-        String webAppURL1 = webAppURL + "/" + webAppFileName + "/simple-servlet";
+        assertTrue(WebAppDeploymentUtil.isWebApplicationAvailable(webAppURL1), "Web App not available " +
+                                                                               "on worker node " + webAppFileName);
         HttpResponse response1 = HttpRequestUtil.sendGetRequest(webAppURL1, null);
         assertTrue(response1.getData().contains("Hello, World"));
     }
@@ -103,5 +106,7 @@ public class SingleWebAppUploaderTestCase extends ASIntegrationTest {
         assertTrue(WebAppDeploymentUtil.isWebApplicationUnDeployed(
                 backendURL, sessionCookie, webAppFileName),
                    "Webapp has not deployed");
+        assertTrue(WebAppDeploymentUtil.isWebApplicationNotAvailable(webAppURL1), "Web App still available " +
+                                                                                  "on worker node " + webAppFileName);
     }
 }
